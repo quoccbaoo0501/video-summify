@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import sys
 from dotenv import load_dotenv
@@ -22,53 +23,39 @@ else:
     print("Warning: GOOGLE_API_KEY not found in environment variables")
 
 app = Flask(__name__)
+CORS(app)
 
-# Try to enable CORS if available
-try:
-    from flask_cors import CORS
-    CORS(app)  # Enable CORS for all routes
-    print("CORS enabled successfully")
-except ImportError:
-    print("Warning: flask_cors not installed, CORS headers will be added manually")
-    # We'll handle CORS headers manually
+@app.route('/')
+def health_check():
+    return jsonify({"status": "ok"})
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
-    """Handle POST requests to /summarize"""
     try:
-        print("Received POST request to /summarize")
-        data = request.json
-        print(f"Request data: {data}")
+        data = request.get_json()
         
         if not data or 'videoUrl' not in data:
-            print("Error: Missing videoUrl in request")
             return jsonify({"error": "Video URL is required"}), 400
         
         video_url = data['videoUrl']
         language = data.get('language', 'en')
-        print(f"Processing video: {video_url}, language: {language}")
+        
+        # Set up API keys
+        setup_api_keys()
         
         # Get video ID
         video_id = get_video_id(video_url)
-        print(f"Video ID: {video_id}")
         
         # Get transcript
-        print("Getting transcript...")
         transcript = get_transcript(video_id, language)
-        print(f"Transcript length: {len(transcript)} characters")
         
         # Generate summary
-        print("Generating summary...")
         summary = summarize_text(transcript)
-        print(f"Summary generated: {len(summary)} characters")
         
-        print("Returning response")
         return jsonify({"summary": summary})
         
     except Exception as e:
-        print(f"Error in /summarize: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error in /summarize endpoint: {str(e)}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/summarize', methods=['OPTIONS'])
@@ -83,12 +70,6 @@ def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
 
-@app.route('/', methods=['GET'])
-def health_check():
-    """Handle GET requests to root endpoint"""
-    print("Health check endpoint called")
-    return jsonify({"status": "healthy", "message": "Video Summify API is running"}), 200
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port) 
