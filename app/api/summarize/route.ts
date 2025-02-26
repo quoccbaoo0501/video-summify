@@ -17,13 +17,19 @@ export async function POST(request: NextRequest) {
     const apiUrl = baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`;
     console.log(`Calling API at: ${apiUrl}`);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ videoUrl, language }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId); // Clear the timeout if the request completes
 
     // Check if response is JSON
     const contentType = response.headers.get('content-type');
@@ -51,6 +57,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ summary: data.summary });
   } catch (error) {
+    clearTimeout(timeoutId); // Clear the timeout on error
     console.error('API error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },

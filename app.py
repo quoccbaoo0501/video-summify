@@ -3,7 +3,6 @@ import os
 import sys
 from dotenv import load_dotenv
 import google.generativeai as genai
-from flask_cors import CORS
 
 # Add the current directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +22,15 @@ else:
     print("Warning: GOOGLE_API_KEY not found in environment variables")
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Try to enable CORS if available
+try:
+    from flask_cors import CORS
+    CORS(app)  # Enable CORS for all routes
+    print("CORS enabled successfully")
+except ImportError:
+    print("Warning: flask_cors not installed, CORS headers will be added manually")
+    # We'll handle CORS headers manually
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
