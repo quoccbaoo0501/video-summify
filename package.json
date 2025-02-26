@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "video-summify",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,6 +13,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-popover": "^1.1.4",
+    "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.1.6",
     "autoprefixer": "^10.4.20",

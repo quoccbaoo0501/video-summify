@@ -1,24 +1,48 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2 } from "lucide-react"
 
 export default function VideoSummary() {
   const [videoUrl, setVideoUrl] = useState("")
+  const [language, setLanguage] = useState("en")
   const [summary, setSummary] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically call your API to get the summary
-    // For now, we'll just set a placeholder summary
-    setSummary(
-      "This is a placeholder summary for the video. In a real application, this would be generated based on the video content.",
-    )
+    setIsLoading(true)
+    setError("")
+    
+    try {
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl, language }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to summarize video')
+      }
+      
+      setSummary(data.summary)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      console.error('Error summarizing video:', err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -37,7 +61,36 @@ export default function VideoSummary() {
               onChange={(e) => setVideoUrl(e.target.value)}
               required
             />
-            <Button type="submit">Summarize</Button>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Language</label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="vi">Vietnamese</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Summarizing...
+                </>
+              ) : (
+                "Summarize"
+              )}
+            </Button>
+            
+            {error && (
+              <div className="text-red-500 text-sm mt-2">
+                Error: {error}
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
