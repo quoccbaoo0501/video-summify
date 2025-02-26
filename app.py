@@ -1,11 +1,15 @@
 from flask import Flask, request, jsonify
 import os
+import sys
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-# Import your existing functions
+# Add the current directory to the path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import your existing functions with correct paths
 from src.transcript import get_video_id, get_transcript
-from src.summerize import summarize_text
+from src.summerize import setup_api_keys, summarize_text
 
 # Load environment variables
 load_dotenv()

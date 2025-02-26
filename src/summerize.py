@@ -3,7 +3,7 @@ import sys
 import argparse
 from typing import Optional, Dict, Any
 import google.generativeai as genai
-from transcript import get_video_id, get_transcript
+from src.transcript import get_video_id, get_transcript
 
 # Default settings
 DEFAULT_MAX_TOKENS = 500
