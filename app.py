@@ -184,14 +184,14 @@ async def test_endpoint():
         "message": "API test endpoint is working"
     }
 
-# Make sure the server always returns a response
-@app.errorhandler(Exception)
-def handle_exception(e):
-    print(f"Unhandled exception: {str(e)}")
+# Replace this Flask-specific code with this FastAPI-compatible exception handler:
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"Unhandled exception: {str(exc)}")
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal server error", "details": str(e)}
+        content={"error": "Internal server error", "details": str(exc)}
     )
 
 if __name__ == "__main__":
