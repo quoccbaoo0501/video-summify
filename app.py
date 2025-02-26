@@ -163,17 +163,37 @@ async def ping():
 @app.get("/debug")
 async def debug_info():
     """Return debug information about the environment"""
-    env_info = {k: v for k, v in os.environ.items() if not k.startswith('_')}
-    # Remove sensitive information
-    if 'GOOGLE_API_KEY' in env_info:
-        env_info['GOOGLE_API_KEY'] = f"{env_info['GOOGLE_API_KEY'][:5]}...redacted"
+    # Define a completely new dictionary with only selected information
+    filtered_environment = {}
+    
+    # Manually add only specific, safe environment variables
+    if os.environ.get("GOOGLE_API_KEY"):
+        filtered_environment["GOOGLE_API_KEY"] = f"{os.environ['GOOGLE_API_KEY'][:5]}...redacted"
+    
+    if os.environ.get("PORT"):
+        filtered_environment["PORT"] = os.environ.get("PORT")
         
+    if os.environ.get("PYTHON_VERSION"):
+        filtered_environment["PYTHON_VERSION"] = os.environ.get("PYTHON_VERSION")
+        
+    if os.environ.get("NODE_ENV"):
+        filtered_environment["NODE_ENV"] = os.environ.get("NODE_ENV")
+        
+    if os.environ.get("RENDER_SERVICE_NAME"):
+        filtered_environment["RENDER_SERVICE_NAME"] = os.environ.get("RENDER_SERVICE_NAME")
+        
+    if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+        filtered_environment["RENDER_EXTERNAL_HOSTNAME"] = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    
+    # Return a new dictionary with only the necessary information
     return {
         "python_version": sys.version,
-        "environment": env_info,
-        "fastapi_version": "0.104.1",  # Match requirements.txt
-        "debug_mode": True,
-        "api_configured": bool(os.environ.get("GOOGLE_API_KEY"))
+        "app_info": {
+            "fastapi_version": "0.104.1",
+            "debug_mode": True,
+            "api_configured": bool(os.environ.get("GOOGLE_API_KEY"))
+        },
+        "safe_environment": filtered_environment
     }
 
 @app.get("/test")
