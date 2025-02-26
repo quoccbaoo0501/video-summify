@@ -11,8 +11,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call your external Python API
-    const response = await fetch(process.env.PYTHON_API_URL || 'https://your-python-api.example.com/summarize', {
+    // Call your Render API endpoint
+    const apiUrl = process.env.PYTHON_API_URL || 'https://video-summify-api.onrender.com/summarize';
+    console.log(`Calling API at: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,6 +27,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     
     if (!response.ok) {
+      console.error('API error response:', data);
       return NextResponse.json(
         { error: data.error || 'Failed to process video' },
         { status: response.status }
