@@ -8,4 +8,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.6
       - key: PORT
-        value: 8080 
+        value: 8080
+      - key: GOOGLE_API_KEY
+        sync: false 
