@@ -13,12 +13,17 @@ export async function POST(request: NextRequest) {
 
     // Call your Render API endpoint with the correct URL
     const baseUrl = process.env.PYTHON_API_URL || 'https://video-summify.onrender.com';
-    // Don't append /summarize if it's already in the baseUrl
-    const apiUrl = baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`;
+    // After your baseUrl setup, add this
+    const useMockEndpoint = true; // Set to false when ready for real API
+
+    // Modify your API URL
+    const apiUrl = useMockEndpoint 
+      ? `${baseUrl.replace('/summarize', '')}/mock-summarize` 
+      : (baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`);
     console.log(`Calling API at: ${apiUrl}`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
     // First test basic connectivity with ping
     const pingUrl = baseUrl.replace('/summarize', '/ping');
@@ -32,12 +37,15 @@ export async function POST(request: NextRequest) {
       console.error('API ping failed:', await pingResponse.text());
     } else {
       console.log('API ping successful:', await pingResponse.json());
+      // Add a small delay to ensure service is fully warmed up
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({ videoUrl, language }),
       signal: controller.signal,
@@ -71,8 +79,10 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ summary: data.summary });
   } catch (error) {
-    clearTimeout(timeoutId); // Clear the timeout on error
-    console.error('API error:', error);
+    console.error('API error with full details:', error);
+    // Make sure to clear timeout
+    if (timeoutId) clearTimeout(timeoutId);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

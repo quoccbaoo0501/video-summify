@@ -72,13 +72,20 @@ def summarize():
         transcript = get_transcript(video_id, language)
         print(f"Got transcript, length: {len(transcript)} characters")
         
-        # Generate summary
-        print("Generating summary...")
-        summary = summarize_text(transcript)
-        print(f"Summary generated, length: {len(summary)} characters")
+        # Add specific timeout error handling
+        try:
+            # Generate summary with explicit timeout handling
+            print("Generating summary...")
+            summary = summarize_text(transcript)
+            print(f"Summary generated, length: {len(summary)} characters")
+        except Exception as summary_error:
+            print(f"Error during summarization: {str(summary_error)}")
+            return jsonify({"error": f"Summarization failed: {str(summary_error)}"}), 500
         
-        # Return the response as JSON
-        return jsonify({"summary": summary})
+        # Ensure the response is properly formatted JSON
+        response = make_response(jsonify({"summary": summary}))
+        response.headers['Content-Type'] = 'application/json'
+        return response
         
     except Exception as e:
         print(f"ERROR in /summarize endpoint: {str(e)}")
@@ -109,6 +116,76 @@ def debug_info():
         "debug_mode": app.debug,
         "api_configured": bool(os.environ.get("GOOGLE_API_KEY"))
     })
+
+@app.route('/test-html', methods=['GET'])
+def test_html():
+    """Return a simple HTML response."""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>API Test</title></head>
+    <body>
+        <h1>API is working!</h1>
+        <p>This is a test HTML response.</p>
+    </body>
+    </html>
+    """
+    return html
+
+@app.route('/test-json', methods=['GET'])
+def test_json():
+    """Return a simple JSON response with explicit headers."""
+    response = make_response(jsonify({"status": "ok", "test": True}))
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
+@app.route('/test-timeout', methods=['GET'])
+def test_timeout():
+    """Test endpoint that simulates long processing."""
+    import time
+    # Log the start time
+    start_time = time.time()
+    
+    # Sleep for 5 seconds to simulate processing
+    time.sleep(5)
+    
+    # Calculate elapsed time
+    elapsed = time.time() - start_time
+    
+    return jsonify({
+        "status": "completed", 
+        "elapsed_seconds": elapsed,
+        "message": "If you can see this, timeouts are not the issue"
+    })
+
+@app.route('/mock-summarize', methods=['POST'])
+def mock_summarize():
+    """Test endpoint that returns a mock summary without calling Gemini API."""
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Request must be JSON"}), 400
+            
+        data = request.get_json()
+        
+        if not data or 'videoUrl' not in data:
+            return jsonify({"error": "Video URL is required"}), 400
+        
+        video_url = data['videoUrl']
+        
+        # Return a mock summary without using the Gemini API
+        mock_summary = f"""
+-Summary of Video
+
+-This is a mock summary of the video at {video_url}
+
+-The video discusses important topics and provides valuable information.
+
+-Overall, this mock summary demonstrates the format without using the API.
+        """
+        
+        return jsonify({"summary": mock_summary})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Make sure the server always returns a response
 @app.errorhandler(Exception)
