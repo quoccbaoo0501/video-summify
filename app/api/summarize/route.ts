@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-
-const execPromise = promisify(exec);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,40 +11,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Path to Python script
-    const scriptPath = path.join(process.cwd(), 'src', 'summarize_api.py');
-    
-    // Execute Python script with parameters and set encoding to UTF-8
-    const { stdout, stderr } = await execPromise(
-      `python "${scriptPath}" "${videoUrl}" "${language}"`,
-      { env: { ...process.env, PYTHONIOENCODING: 'utf-8' } }
-    );
+    // Call your external Python API
+    const response = await fetch(process.env.PYTHON_API_URL || 'https://your-python-api.example.com/summarize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.API_SECRET_KEY || ''}`
+      },
+      body: JSON.stringify({ videoUrl, language }),
+    });
 
-    if (stderr && !stderr.includes('WARNING:') && !stderr.includes('grpc_wait_for_shutdown_with_timeout')) {
-      console.error('Python script error:', stderr);
+    const data = await response.json();
+    
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'Failed to process video' },
-        { status: 500 }
+        { error: data.error || 'Failed to process video' },
+        { status: response.status }
       );
     }
-
-    // Check if output is JSON error
-    if (stdout.trim().startsWith('{') && stdout.includes('"error"')) {
-      try {
-        const errorData = JSON.parse(stdout.trim());
-        return NextResponse.json(
-          { error: errorData.error },
-          { status: 500 }
-        );
-      } catch (e) {
-        // If parsing fails, continue with normal processing
-      }
-    }
-
-    // Parse the output from Python script
-    const summary = stdout.trim();
     
-    return NextResponse.json({ summary });
+    return NextResponse.json({ summary: data.summary });
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
