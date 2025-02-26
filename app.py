@@ -1,5 +1,7 @@
-from flask import Flask, request, jsonify, make_response
-from flask_cors import CORS
+from fastapi import FastAPI, Request, Response, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import os
 import sys
 import traceback
@@ -26,44 +28,48 @@ if api_key:
 else:
     print("WARNING: GOOGLE_API_KEY not found in environment variables")
 
-app = Flask(__name__)
-# Configure CORS with the Flask-CORS extension more explicitly
-CORS(app, resources={r"/*": {
-    "origins": "*", 
-    "allow_headers": ["Content-Type", "Authorization", "Accept"], 
-    "expose_headers": ["Content-Type", "X-Requested-With"],
-    "methods": ["GET", "POST", "OPTIONS"]
-}})
+# Create FastAPI app
+app = FastAPI(title="Video Summify API")
 
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-@app.route('/')
-def health_check():
+# Define request models
+class SummarizeRequest(BaseModel):
+    videoUrl: str
+    language: str = "en"
+
+@app.get("/")
+async def health_check():
+    """API health check endpoint"""
     try:
-        return jsonify({"status": "ok", "message": "API is running"})
+        return {"status": "ok", "message": "API is running"}
     except Exception as e:
         print(f"Error in health check: {str(e)}")
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
 
-@app.route('/summarize', methods=['POST'])
-def summarize():
+@app.post("/summarize")
+async def summarize(request: SummarizeRequest):
+    """Summarize a YouTube video"""
     try:
         # Debug information
         print("Received request to /summarize endpoint")
+        print(f"Received data: {request}")
         
-        # Ensure we're getting JSON data
-        if not request.is_json:
-            print("Request does not contain JSON data")
-            return jsonify({"error": "Request must be JSON"}), 400
-            
-        data = request.get_json()
-        print(f"Received data: {data}")
-        
-        if not data or 'videoUrl' not in data:
-            return jsonify({"error": "Video URL is required"}), 400
-        
-        video_url = data['videoUrl']
-        language = data.get('language', 'en')
+        video_url = request.videoUrl
+        language = request.language
         
         print(f"Processing video URL: {video_url}, language: {language}")
         
@@ -86,98 +92,110 @@ def summarize():
                 
                 # Now try to get the transcript as normal
                 transcript = get_transcript(video_id, language)
-                print(f"Got transcript, length: {len(transcript)} characters")
+
             except Exception as transcript_error:
                 error_msg = str(transcript_error)
                 print(f"Detailed transcript error: {error_msg}")
                 # Provide a user-friendly error message for missing transcripts
                 if "Could not retrieve a transcript" in error_msg:
-                    return jsonify({
-                        "error": "This video doesn't have subtitles/transcripts available",
-                        "details": "To summarize a video, it must have subtitles or closed captions enabled.",
-                        "suggestion": "Try a different video that has subtitles available.",
-                        "example_videos": [
-                            "https://www.youtube.com/watch?v=LXb3EKWsInQ",  # NASA Mars 2020 Perseverance Rover Mission
-                            "https://www.youtube.com/watch?v=W0LHTWG-UmQ",  # Google I/O keynote (usually has good transcripts)
-                            "https://www.youtube.com/watch?v=fKopy74weus"    # TED Talk with good captioning
-                        ]
-                    }), 400
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "error": "This video doesn't have subtitles/transcripts available",
+                            "details": "To summarize a video, it must have subtitles or closed captions enabled.",
+                            "suggestion": "Try a different video that has subtitles available.",
+                            "example_videos": [
+                                "https://www.youtube.com/watch?v=LXb3EKWsInQ",  # NASA Mars 2020 Perseverance Rover Mission
+                                "https://www.youtube.com/watch?v=W0LHTWG-UmQ",  # Google I/O keynote (usually has good transcripts)
+                                "https://www.youtube.com/watch?v=fKopy74weus"    # TED Talk with good captioning
+                            ]
+                        }
+                    )
                 else:
-                    return jsonify({"error": f"Failed to get transcript: {error_msg}"}), 500
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Failed to get transcript: {error_msg}"}
+                    )
+                    
         except Exception as video_id_error:
             error_msg = str(video_id_error)
             print(f"Error getting video ID: {error_msg}")
-            return jsonify({"error": f"Failed to get video ID: {error_msg}"}), 500
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Failed to get video ID: {error_msg}"}
+            )
         
-        # Add specific timeout error handling
+        # Generate summary
         try:
-            # Generate summary with explicit timeout handling
             print("Generating summary...")
             summary = summarize_text(transcript)
             print(f"Summary generated, length: {len(summary)} characters")
         except Exception as summary_error:
             print(f"Error during summarization: {str(summary_error)}")
-            return jsonify({"error": f"Summarization failed: {str(summary_error)}"}), 500
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Summarization failed: {str(summary_error)}"}
+            )
         
-        # Ensure the response is properly formatted JSON
-        response = make_response(jsonify({"summary": summary}))
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        # Return the summary
+        return {"summary": summary}
         
     except Exception as e:
         print(f"ERROR in /summarize endpoint: {str(e)}")
         traceback.print_exc()  # Print the full stack trace for debugging
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
-@app.route('/summarize', methods=['OPTIONS'])
-def handle_options():
-    response = make_response()
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,Accept")
-    response.headers.add("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-    return response
-
-@app.route('/ping', methods=['GET'])
-def ping():
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint to check API availability"""
     try:
-        # Basic response - no dependencies
-        return jsonify({"message": "pong"})
+        return {"message": "pong"}
     except Exception as e:
         logging.error(f"Error in ping endpoint: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
-@app.route('/debug', methods=['GET'])
-def debug_info():
-    """Return debug information about the environment."""
+@app.get("/debug")
+async def debug_info():
+    """Return debug information about the environment"""
     env_info = {k: v for k, v in os.environ.items() if not k.startswith('_')}
     # Remove sensitive information
     if 'GOOGLE_API_KEY' in env_info:
         env_info['GOOGLE_API_KEY'] = f"{env_info['GOOGLE_API_KEY'][:5]}...redacted"
         
-    return jsonify({
+    return {
         "python_version": sys.version,
         "environment": env_info,
-        "flask_version": Flask.__version__,
-        "debug_mode": app.debug,
+        "fastapi_version": "0.104.1",  # Match requirements.txt
+        "debug_mode": True,
         "api_configured": bool(os.environ.get("GOOGLE_API_KEY"))
-    })
+    }
 
-@app.route('/test', methods=['GET'])
-def test_endpoint():
-    """Simple endpoint to test API connectivity."""
-    return jsonify({
+@app.get("/test")
+async def test_endpoint():
+    """Simple endpoint to test API connectivity"""
+    return {
         "status": "ok",
         "message": "API test endpoint is working"
-    })
+    }
 
 # Make sure the server always returns a response
 @app.errorhandler(Exception)
 def handle_exception(e):
     print(f"Unhandled exception: {str(e)}")
     traceback.print_exc()
-    return jsonify({"error": "Internal server error", "details": str(e)}), 500
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "details": str(e)}
+    )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    print(f"Starting Flask app on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=True) 
+    print(f"Starting FastAPI app on port {port}")
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True) 

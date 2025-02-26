@@ -3,7 +3,7 @@ services:
     name: video-summify-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:application
+    startCommand: gunicorn -w 4 -k uvicorn.workers.UvicornWorker wsgi:application
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.6
