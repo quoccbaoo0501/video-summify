@@ -5,6 +5,7 @@ import sys
 import traceback
 from dotenv import load_dotenv
 import google.generativeai as genai
+import logging
 
 # Add the current directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +28,8 @@ else:
 app = Flask(__name__)
 # Configure CORS with the Flask-CORS extension more explicitly
 CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*", "expose_headers": "*"}})
+
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def health_check():
@@ -81,6 +84,31 @@ def summarize():
         print(f"ERROR in /summarize endpoint: {str(e)}")
         traceback.print_exc()  # Print the full stack trace for debugging
         return jsonify({"error": str(e)}), 500
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    try:
+        # Basic response - no dependencies
+        return jsonify({"message": "pong"})
+    except Exception as e:
+        logging.error(f"Error in ping endpoint: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/debug', methods=['GET'])
+def debug_info():
+    """Return debug information about the environment."""
+    env_info = {k: v for k, v in os.environ.items() if not k.startswith('_')}
+    # Remove sensitive information
+    if 'GOOGLE_API_KEY' in env_info:
+        env_info['GOOGLE_API_KEY'] = f"{env_info['GOOGLE_API_KEY'][:5]}...redacted"
+        
+    return jsonify({
+        "python_version": sys.version,
+        "environment": env_info,
+        "flask_version": Flask.__version__,
+        "debug_mode": app.debug,
+        "api_configured": bool(os.environ.get("GOOGLE_API_KEY"))
+    })
 
 # Make sure the server always returns a response
 @app.errorhandler(Exception)

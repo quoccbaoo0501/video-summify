@@ -20,6 +20,20 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
+    // First test basic connectivity with ping
+    const pingUrl = baseUrl.replace('/summarize', '/ping');
+    console.log(`Testing API connectivity at: ${pingUrl}`);
+    const pingResponse = await fetch(pingUrl, { 
+      method: 'GET',
+      signal: controller.signal 
+    });
+    
+    if (!pingResponse.ok) {
+      console.error('API ping failed:', await pingResponse.text());
+    } else {
+      console.log('API ping successful:', await pingResponse.json());
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {

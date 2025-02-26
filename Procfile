@@ -1,1 +1,1 @@
-web: pip install -r requirements.txt && gunicorn "app:app" --log-level debug
+web: gunicorn wsgi:application --log-level debug

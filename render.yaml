@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: video-summify-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.6
+      - key: PORT
+        value: 8080 
