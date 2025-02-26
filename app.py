@@ -47,6 +47,10 @@ def summarize():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/summarize', methods=['OPTIONS'])
+def handle_options():
+    return '', 204
+
 # Add CORS headers
 @app.after_request
 def add_cors_headers(response):

@@ -11,19 +11,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call your Render API endpoint
+    // Call your Render API endpoint with the correct URL
     const baseUrl = process.env.PYTHON_API_URL || 'https://video-summify.onrender.com';
-    const apiUrl = `${baseUrl}/summarize`;
+    // Don't append /summarize if it's already in the baseUrl
+    const apiUrl = baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`;
     console.log(`Calling API at: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.API_SECRET_KEY || ''}`
       },
       body: JSON.stringify({ videoUrl, language }),
     });
+
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await response.text();
+      console.error('Non-JSON response:', responseText);
+      return NextResponse.json(
+        { 
+          error: 'API returned non-JSON response. The service might be down or misconfigured.',
+          details: responseText.substring(0, 200) + (responseText.length > 200 ? '...' : '')
+        },
+        { status: 500 }
+      );
+    }
 
     const data = await response.json();
     
