@@ -14,12 +14,10 @@ export async function POST(request: NextRequest) {
     // Call your Render API endpoint with the correct URL
     const baseUrl = process.env.PYTHON_API_URL || 'https://video-summify.onrender.com';
     // After your baseUrl setup, add this
-    const useMockEndpoint = true; // Set to false when ready for real API
+    const useMockEndpoint = false; // Use the real API
 
     // Modify your API URL
-    const apiUrl = useMockEndpoint 
-      ? `${baseUrl.replace('/summarize', '')}/mock-summarize` 
-      : (baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`);
+    const apiUrl = baseUrl.includes('/summarize') ? baseUrl : `${baseUrl}/summarize`;
     console.log(`Calling API at: ${apiUrl}`);
     
     const controller = new AbortController();
