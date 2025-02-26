@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Call your Render API endpoint
-    const apiUrl = process.env.PYTHON_API_URL || 'https://video-summify-api.onrender.com/summarize';
+    const baseUrl = process.env.PYTHON_API_URL || 'https://video-summify.onrender.com';
+    const apiUrl = `${baseUrl}/summarize`;
     console.log(`Calling API at: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
