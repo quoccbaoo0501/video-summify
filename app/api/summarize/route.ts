@@ -73,6 +73,18 @@ export async function POST(request: NextRequest) {
       const { stdout, stderr } = await execPromise(command);
       console.log('summarize_api.py STDOUT:', stdout);
       console.error('summarize_api.py STDERR:', stderr);
+      
+      // Check if the output includes transcript not available error
+      if (stdout && stdout.includes('Subtitles are disabled for this video')) {
+        return NextResponse.json(
+          { 
+            error: 'This video does not have subtitles/captions available. Please try a different video that has captions enabled.',
+            details: 'YouTube requires videos to have captions/subtitles for summarization to work.'
+          },
+          { status: 422 }
+        );
+      }
+      
       if (stderr && !stderr.includes('WARNING')) {
         console.error('Python script error:', stderr);
         return NextResponse.json(
@@ -83,6 +95,19 @@ export async function POST(request: NextRequest) {
     } catch (execError) {
       // Handle cases where Python isn't found or the script crashed
       console.error('Failed to run Python script:', execError);
+      
+      // Check if the error is about missing transcripts
+      const errorOutput = (execError as any).stdout || '';
+      if (errorOutput.includes('Subtitles are disabled for this video')) {
+        return NextResponse.json(
+          { 
+            error: 'This video does not have subtitles/captions available. Please try a different video that has captions enabled.',
+            details: 'YouTube requires videos to have captions/subtitles for summarization to work.'
+          },
+          { status: 422 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `Unable to run summarize script: ${execError}` },
         { status: 500 }

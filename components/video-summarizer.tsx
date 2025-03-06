@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { VideoSummary } from "@/components/video-summary"
 import { Flashcards } from "@/components/flashcards"
 import { Quiz } from "@/components/quiz"
-import { YoutubeIcon, FileText, BookOpen, HelpCircle, Loader2 } from "lucide-react"
+import { YoutubeIcon, FileText, BookOpen, HelpCircle, Loader2, AlertCircle } from "lucide-react"
 import { extractVideoId } from "@/lib/utils"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function VideoSummarizer() {
   const [url, setUrl] = useState("")
@@ -20,6 +21,7 @@ export function VideoSummarizer() {
   const [summary, setSummary] = useState("")
   const [activeTab, setActiveTab] = useState("summary")
   const [error, setError] = useState<string | null>(null)
+  const [errorDetails, setErrorDetails] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,12 +29,14 @@ export function VideoSummarizer() {
     const extractedId = extractVideoId(url)
     if (!extractedId) {
       setError("Please enter a valid YouTube URL")
+      setErrorDetails(null)
       return
     }
 
     setVideoId(extractedId)
     setIsLoading(true)
     setError(null)
+    setErrorDetails(null)
 
     try {
       // Call the real summarize API
@@ -49,7 +53,9 @@ export function VideoSummarizer() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to summarize video')
+        throw new Error(errorData.error || 'Failed to summarize video', { 
+          cause: errorData.details 
+        })
       }
 
       const data = await response.json()
@@ -57,7 +63,15 @@ export function VideoSummarizer() {
       setActiveTab("summary")
     } catch (error) {
       console.error("Error summarizing video:", error)
-      setError(error instanceof Error ? error.message : 'Failed to summarize video. Please try again.')
+      if (error instanceof Error) {
+        setError(error.message)
+        // Check if error has details
+        if ('cause' in error && typeof error.cause === 'string') {
+          setErrorDetails(error.cause)
+        }
+      } else {
+        setError('Failed to summarize video. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -92,9 +106,16 @@ export function VideoSummarizer() {
           </form>
           
           {error && (
-            <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md text-sm">
-              {error}
-            </div>
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+                {errorDetails && (
+                  <p className="mt-2 text-sm opacity-80">{errorDetails}</p>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>

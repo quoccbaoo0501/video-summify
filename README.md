@@ -78,6 +78,20 @@ This will start the application on [http://localhost:3000](http://localhost:3000
 
 ## How It Works
 
+### Video Requirements
+
+For a YouTube video to be summarized:
+
+1. **Captions/Subtitles**: The video must have captions or subtitles available on YouTube. Videos without captions cannot be processed.
+
+2. **Language Support**: 
+   - The application supports videos with English (en) captions by default
+   - Videos with captions in other languages can be processed by changing the language setting
+
+3. **Public/Unlisted Videos**: The video must be accessible (public or unlisted)
+
+If you encounter an error about "subtitles are disabled for this video," try a different video that has captions enabled.
+
 ### Backend Architecture
 
 1. **API Routes**:
