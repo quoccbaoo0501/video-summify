@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     fs.writeFileSync(inputFile, JSON.stringify(inputData));
     
     // 1. Choose which Python command to run
-    const pythonCommand = process.env.PYTHON_PATH || 'python';
+    const pythonCommand = process.env.PYTHON_PATH || 'python3';
     try {
       // 2. Attempt to run the Python script
       //    Wrap all paths in quotes to avoid issues with spaces
