@@ -6,6 +6,15 @@ import path from 'path';
 
 const execPromise = promisify(exec);
 
+// Helper function to determine if we're running in a Docker container
+const isRunningInDocker = () => {
+  try {
+    return fs.existsSync('/.dockerenv');
+  } catch {
+    return false;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { summary, numCards = 10 } = await request.json();
@@ -17,10 +26,13 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Determine base directory based on environment
+    const baseDir = isRunningInDocker() ? '/app' : process.cwd();
+    
     // Create unique temporary files for input and output
     const uniqueId = `${Date.now()}-${Math.floor(Math.random() * 1e7)}`;
-    const inputFile = path.join(process.cwd(), `temp_flashcards_input_${uniqueId}.json`);
-    const outputFile = path.join(process.cwd(), `temp_flashcards_output_${uniqueId}.json`);
+    const inputFile = path.join(baseDir, `temp_flashcards_input_${uniqueId}.json`);
+    const outputFile = path.join(baseDir, `temp_flashcards_output_${uniqueId}.json`);
     
     // Prepare input data for the Python script
     const inputData = {
@@ -32,11 +44,11 @@ export async function POST(request: NextRequest) {
     fs.writeFileSync(inputFile, JSON.stringify(inputData));
     
     // Choose which Python command to run
-    const pythonCommand = process.env.PYTHON_PATH || 'python';
+    const pythonCommand = process.env.PYTHON_PATH || 'python3';
     
     try {
       // Attempt to run the Python script with full path resolution
-      const scriptPath = path.join(process.cwd(), 'flashcards_api.py');
+      const scriptPath = path.join(baseDir, 'flashcards_api.py');
       const command = `${pythonCommand} "${scriptPath}" "${inputFile}" "${outputFile}"`;
       console.log('Running command:', command);
       
@@ -67,8 +79,13 @@ export async function POST(request: NextRequest) {
       const outputData = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
       
       // Clean up temporary files
-      fs.unlinkSync(inputFile);
-      fs.unlinkSync(outputFile);
+      try {
+        fs.unlinkSync(inputFile);
+        fs.unlinkSync(outputFile);
+      } catch (e) {
+        console.error('Error cleaning up temporary files:', e);
+        // Continue execution even if cleanup fails
+      }
       
       return NextResponse.json({
         flashcards: outputData.flashcards

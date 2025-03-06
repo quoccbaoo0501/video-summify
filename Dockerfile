@@ -19,6 +19,10 @@ RUN pip3 install --default-timeout=300 --no-cache-dir -r requirements.txt
 COPY package*.json ./
 RUN npm install
 
+# Copy the entrypoint script first to ensure it's available
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Finally, copy everything else
 COPY . .
 
@@ -27,6 +31,9 @@ RUN npm run build
 
 # Expose port 3000 at runtime
 EXPOSE 3000
+
+# Set the entrypoint script to run before the Node.js server
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Set command to run the Next.js production server
 CMD ["npm", "run", "start"] 

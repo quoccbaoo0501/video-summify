@@ -6,6 +6,15 @@ import path from 'path';
 
 const execPromise = promisify(exec);
 
+// Helper function to determine if we're running in a Docker container
+const isRunningInDocker = () => {
+  try {
+    return fs.existsSync('/.dockerenv');
+  } catch {
+    return false;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { url, language = 'en' } = await request.json();
@@ -17,9 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a temporary file to store input and output
-    const inputFile = path.join(process.cwd(), 'temp_input.json');
-    const outputFile = path.join(process.cwd(), 'temp_output.json');
+    // Determine base directory based on environment
+    const baseDir = isRunningInDocker() ? '/app' : process.cwd();
+
+    // Create paths for input and output files
+    const inputFile = path.join(baseDir, 'temp_input.json');
+    const outputFile = path.join(baseDir, 'temp_output.json');
     
     // Prepare input data for the Python script
     const inputData = {
@@ -35,7 +47,7 @@ export async function POST(request: NextRequest) {
     try {
       // 2. Attempt to run the Python script
       //    Wrap all paths in quotes to avoid issues with spaces
-      const scriptPath = path.join(process.cwd(), 'summarize_api.py');
+      const scriptPath = path.join(baseDir, 'summarize_api.py');
       const command = `${pythonCommand} "${scriptPath}" "${inputFile}" "${outputFile}"`;
       console.log('Running command:', command);
       const { stdout, stderr } = await execPromise(command);
@@ -69,8 +81,13 @@ export async function POST(request: NextRequest) {
       jsonData.summary = jsonData.summary.replace(/\n/g, '<br/>');
 
       // Clean up temporary files
-      fs.unlinkSync(inputFile);
-      fs.unlinkSync(outputFile);
+      try {
+        fs.unlinkSync(inputFile);
+        fs.unlinkSync(outputFile);
+      } catch (e) {
+        console.error('Error cleaning up temporary files:', e);
+        // Continue execution even if cleanup fails
+      }
       
       return NextResponse.json(jsonData, { status: 200 });
     } else {
