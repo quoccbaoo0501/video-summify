@@ -83,6 +83,9 @@ def process_api_request(input_file: str, output_file: str) -> None:
         video_id = get_video_id(url)
         logger.info(f"Extracted video ID: {video_id}")
         
+        # Check if we're in the Render environment
+        is_render = os.environ.get('RENDER') == 'true'
+        
         # Try multiple times to get the transcript with different methods
         max_retries = 3
         last_error = None
@@ -105,11 +108,38 @@ def process_api_request(input_file: str, output_file: str) -> None:
                 logger.error(f"Attempt {attempt} failed: {str(e)}")
                 if attempt == max_retries:
                     logger.error(f"All {max_retries} attempts to get transcript failed")
-                    raise ValueError(f"Failed to get transcript after {max_retries} attempts: {str(last_error)}")
+                    # Create more specific error message for no transcripts case
+                    error_msg = str(last_error)
+                    if "subtitles are disabled" in error_msg.lower() or "no transcripts available" in error_msg.lower() or "does not have available subtitles" in error_msg:
+                        # Write a user-friendly error response for videos without subtitles
+                        error_data = {
+                            'error': "This video does not have subtitles/captions available. Please try a different video that has captions enabled.",
+                            'error_type': "NoTranscriptAvailable",
+                            'video_id': video_id,
+                            'suggestion': "YouTube requires videos to have captions/subtitles for summarization to work."
+                        }
+                        with open(output_file, 'w') as f:
+                            json.dump(error_data, f)
+                        logger.info("Wrote no-transcript error response to output file")
+                        return  # Exit without raising an exception
+                    else:
+                        # For other types of errors
+                        raise ValueError(f"Failed to get transcript after {max_retries} attempts: {str(last_error)}")
         
+        # If we're here, we have a transcript
         if not transcript_text or len(transcript_text.strip()) < 10:
             logger.error("Retrieved transcript is empty or too short")
-            raise ValueError("Retrieved transcript is empty or too short")
+            # Handle empty transcript case with user-friendly error
+            error_data = {
+                'error': "Retrieved transcript is too short to generate a meaningful summary.",
+                'error_type': "EmptyTranscript",
+                'video_id': video_id,
+                'suggestion': "Please try a video with more substantial captions."
+            }
+            with open(output_file, 'w') as f:
+                json.dump(error_data, f)
+            logger.info("Wrote empty-transcript error response to output file")
+            return  # Exit without raising an exception
             
         logger.info("Generating summary...")
         summary = summarize_text(transcript_text)
@@ -132,21 +162,33 @@ def process_api_request(input_file: str, output_file: str) -> None:
         logger.error(f"Error processing request: {str(e)}")
         logger.debug(traceback.format_exc())
         # Write error to output file
+        error_message = str(e)
+        error_type = type(e).__name__
+        
+        # Check for common error types and provide user-friendly messages
+        if "subtitles are disabled" in error_message.lower() or "no transcripts available" in error_message.lower() or "does not have available subtitles" in error_message:
+            error_type = "NoTranscriptAvailable"
+            error_message = "This video does not have subtitles/captions available. Please try a different video that has captions enabled."
+        
         error_data = {
-            'error': str(e),
-            'error_type': type(e).__name__
+            'error': error_message,
+            'error_type': error_type,
+            'suggestion': "YouTube requires videos to have captions/subtitles for summarization to work."
         }
+        
         try:
             with open(output_file, 'w') as f:
                 json.dump(error_data, f)
         except Exception as write_error:
             logger.error(f"Failed to write error to output file: {str(write_error)}")
-        raise
+        # Don't re-raise the exception since we've already handled it by writing to the output file
+        return
 
 def main():
     """
     Main function to handle API requests.
     """
+    exit_code = 0  # Default to success
     try:
         if len(sys.argv) != 3:
             logger.error("Incorrect number of arguments")
@@ -167,20 +209,37 @@ def main():
             # Write error to output file
             with open(output_file, 'w') as f:
                 json.dump({'error': f"API configuration error: {str(e)}"}, f)
-            sys.exit(1)
+            exit_code = 1
         
-        # Process the request
-        try:
-            process_api_request(input_file, output_file)
-        except Exception as e:
-            logger.error(f"Error in process_api_request: {str(e)}")
-            # The function already writes errors to the output file
-            sys.exit(1)
+        if exit_code == 0:  # Only proceed if API keys were successfully configured
+            # Process the request
+            try:
+                process_api_request(input_file, output_file)
+            except Exception as e:
+                logger.error(f"Error in process_api_request: {str(e)}")
+                # The process_api_request function already writes errors to the output file
+                # But we don't need to exit with an error code because we've handled the error gracefully
+                # Only set exit_code if it's a critical error that should be propagated
+                if "This video does not have" not in str(e) and "no transcripts available" not in str(e).lower():
+                    exit_code = 1
             
     except Exception as e:
         logger.critical(f"Unhandled exception: {str(e)}")
         logger.debug(traceback.format_exc())
-        sys.exit(1)
+        # Try to write a generic error response if possible
+        try:
+            output_file = sys.argv[2] if len(sys.argv) >= 3 else "error_output.json"
+            with open(output_file, 'w') as f:
+                json.dump({
+                    'error': f"An unexpected error occurred: {str(e)}", 
+                    'error_type': "UnhandledException"
+                }, f)
+        except Exception:
+            pass
+        exit_code = 1
+    
+    # Exit with appropriate code
+    sys.exit(exit_code)
 
 if __name__ == "__main__":
     main() 
