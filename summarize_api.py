@@ -43,6 +43,17 @@ def setup_api_keys() -> None:
     else:
         raise ValueError("GEMINI_API_KEY not found in environment variables")
 
+def log_environment_info():
+    """
+    Log information about the current environment for debugging purposes.
+    """
+    logger.info("Environment Information:")
+    logger.info(f"NODE_ENV: {os.environ.get('NODE_ENV', 'not set')}")
+    logger.info(f"RENDER: {os.environ.get('RENDER', 'not set')}")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Files in current directory: {', '.join(os.listdir('.')[:10])}...")
+
 def process_api_request(input_file: str, output_file: str) -> None:
     """
     Process an API request from input file and write result to output file.
@@ -52,6 +63,9 @@ def process_api_request(input_file: str, output_file: str) -> None:
         output_file: Path to write output JSON data
     """
     try:
+        # Log environment information for debugging
+        log_environment_info()
+        
         # Read input data
         logger.info(f"Reading input file: {input_file}")
         with open(input_file, 'r') as f:
@@ -69,12 +83,29 @@ def process_api_request(input_file: str, output_file: str) -> None:
         video_id = get_video_id(url)
         logger.info(f"Extracted video ID: {video_id}")
         
-        try:
-            transcript_text = get_transcript(video_id, language)
-            logger.info(f"Retrieved transcript ({len(transcript_text)} characters)")
-        except Exception as e:
-            logger.error(f"Failed to get transcript: {str(e)}")
-            raise ValueError(f"Failed to get transcript: {str(e)}")
+        # Try multiple times to get the transcript with different methods
+        max_retries = 3
+        last_error = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Transcript retrieval attempt {attempt}/{max_retries}")
+                transcript_text = get_transcript(video_id, language)
+                transcript_length = len(transcript_text)
+                logger.info(f"Retrieved transcript ({transcript_length} characters)")
+                
+                if transcript_length < 10:
+                    logger.warning("Retrieved transcript is very short, might be incomplete")
+                
+                # If we got here, we have a transcript
+                break
+                
+            except Exception as e:
+                last_error = e
+                logger.error(f"Attempt {attempt} failed: {str(e)}")
+                if attempt == max_retries:
+                    logger.error(f"All {max_retries} attempts to get transcript failed")
+                    raise ValueError(f"Failed to get transcript after {max_retries} attempts: {str(last_error)}")
         
         if not transcript_text or len(transcript_text.strip()) < 10:
             logger.error("Retrieved transcript is empty or too short")

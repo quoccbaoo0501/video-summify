@@ -12,8 +12,11 @@ WORKDIR /app
 COPY requirements.txt ./requirements.txt
 
 # Upgrade pip and install dependencies
-RUN pip3 install --upgrade pip
-RUN pip3 install --default-timeout=300 --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip --root-user-action=ignore
+RUN pip3 install --default-timeout=300 --no-cache-dir -r requirements.txt --root-user-action=ignore
+
+# Verify Python packages are installed correctly
+RUN python3 -c "import youtube_transcript_api; import requests; import bs4; print('Python packages verified')"
 
 # Now copy your Node package files
 COPY package*.json ./
