@@ -15,6 +15,12 @@ A comprehensive video summarization and learning tool that helps users understan
 - Python 3.8 or higher
 - Google Gemini API key
 
+### Installing Python and Node.js
+If you don't have Python or Node.js installed:
+
+- **Python**: Visit [python.org/downloads](https://www.python.org/downloads/) or use a package manager (e.g. Homebrew on macOS or apt-get on Linux) to install Python 3.8 or higher.
+- **Node.js**: Go to [nodejs.org](https://nodejs.org/) and download the LTS release (or install via a package manager).
+
 ## Quick Start
 
 If you just want to get started quickly, follow these steps:
