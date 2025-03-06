@@ -1,0 +1,52 @@
+[
+  {
+    "question": "What is the central argument of the video regarding modern web development?",
+    "options": [
+      "Over-reliance on third-party services is efficient and cost-effective.",
+      "PostgreSQL is unsuitable for complex web applications.",
+      "Third-party services are unnecessary and should be avoided entirely.",
+      "PostgreSQL can replace many third-party services, simplifying development and reducing costs."
+    ],
+    "correctAnswer": 3
+  },
+  {
+    "question": "Which PostgreSQL extension is mentioned for handling scheduled tasks?",
+    "options": [
+      "PG Vector",
+      "PostgREST",
+      "PG Cron",
+      "PG JWT"
+    ],
+    "correctAnswer": 2
+  },
+  {
+    "question": "According to the video, what can be used as an alternative to in-memory caching in a PostgreSQL-based application?",
+    "options": [
+      "JSONB",
+      "Unlogged tables",
+      "PG Crypto",
+      "Electric SQL"
+    ],
+    "correctAnswer": 1
+  },
+  {
+    "question": "For creating RESTful APIs, the video suggests using which PostgreSQL extension?",
+    "options": [
+      "PG GraphQL",
+      "PostgREST",
+      "Electric SQL",
+      "PG Mooncake"
+    ],
+    "correctAnswer": 1
+  },
+  {
+    "question": "What service is highlighted as a convenient option for hosting and scaling PostgreSQL projects?",
+    "options": [
+      "PostgREST",
+      "Electric SQL",
+      "Neon",
+      "PG Vector"
+    ],
+    "correctAnswer": 2
+  }
+]

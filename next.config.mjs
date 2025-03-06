@@ -20,17 +20,6 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL || 'https://video-summify.onrender.com/:path*'
-      }
-    ]
   },
 }
 

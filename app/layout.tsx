@@ -8,24 +8,18 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Video Summify",
-  description: "Summarize your videos with ease",
-  generator: 'v0.dev'
+  description: "Transform YouTube videos into summaries, flashcards, and quizzes",
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="system" 
-          enableSystem 
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
       </body>
@@ -33,6 +27,3 @@ export default function RootLayout({
   )
 }
 
-
-
-import './globals.css'
