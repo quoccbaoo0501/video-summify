@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 const execPromise = promisify(exec);
 
@@ -13,6 +14,24 @@ const isRunningInDocker = () => {
   } catch {
     return false;
   }
+};
+
+// Helper function to determine the Python command to use
+const getPythonCommand = () => {
+  // First check if there's an environment variable set
+  if (process.env.PYTHON_PATH) {
+    return process.env.PYTHON_PATH;
+  }
+  
+  // Check the platform
+  const platform = os.platform();
+  if (platform === 'win32') {
+    // On Windows, try 'python' first
+    return 'python';
+  }
+  
+  // For other platforms (Linux, macOS), default to python3
+  return 'python3';
 };
 
 export async function POST(request: NextRequest) {
@@ -43,8 +62,9 @@ export async function POST(request: NextRequest) {
     // Write input data to file
     fs.writeFileSync(inputFile, JSON.stringify(inputData));
     
-    // Choose which Python command to run
-    const pythonCommand = process.env.PYTHON_PATH || 'python3';
+    // Get the appropriate Python command for this platform
+    const pythonCommand = getPythonCommand();
+    console.log(`Using Python command: ${pythonCommand}`);
     
     try {
       // Attempt to run the Python script with full path resolution
