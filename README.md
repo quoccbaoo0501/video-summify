@@ -15,12 +15,26 @@ A comprehensive video summarization and learning tool that helps users understan
 - Python 3.8 or higher
 - Google Gemini API key
 
+## Quick Start
+
+If you just want to get started quickly, follow these steps:
+
+```bash
+git clone https://github.com/quoccbaoo0501/video-summify.git
+cd video-summify
+npm install
+pip install google-generativeai youtube-transcript-api
+npm run dev
+```
+
+You can visit [http://localhost:3000](http://localhost:3000) to see the application. If you get stuck, see the full installation instructions below.
+
 ## Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/video-summify.git
+git clone https://github.com/quoccbaoo0501/video-summify.git
 cd video-summify
 ```
 
