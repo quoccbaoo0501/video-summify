@@ -1,0 +1,12 @@
+build:
+  postDeploy:
+    - chmod +x /app/docker-entrypoint.sh
+    - echo "RENDER: Setting up application directories and permissions"
+    - mkdir -p /app/tmp
+    - touch /app/temp_input.json
+    - touch /app/temp_output.json
+    - chmod 777 /app/temp_input.json
+    - chmod 777 /app/temp_output.json
+    - chmod 777 /app/tmp
+    - chmod +x /app/*.py
+    - echo "RENDER: Configuration complete" 

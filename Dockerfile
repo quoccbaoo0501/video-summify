@@ -29,11 +29,14 @@ COPY . .
 # Build Next.js
 RUN npm run build
 
-# Expose port 3000 at runtime
-EXPOSE 3000
+# Expose the port that will be used by the application
+# Note: The actual port used will be determined by the PORT env variable
+ARG PORT=3000
+ENV PORT=${PORT}
+EXPOSE ${PORT}
 
 # Set the entrypoint script to run before the Node.js server
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-# Set command to run the Next.js production server
+# Set command to run the Next.js production server with the custom server
 CMD ["npm", "run", "start"] 
