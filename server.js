@@ -3,6 +3,13 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 
+// Force production mode when running on Render
+// This is crucial for avoiding development mode's continuous recompilation
+if (process.env.RENDER) {
+  process.env.NODE_ENV = 'production';
+  console.log('Detected Render environment, forcing production mode');
+}
+
 // Determine if we're in development or production
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });

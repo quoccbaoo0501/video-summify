@@ -26,13 +26,16 @@ RUN chmod +x /docker-entrypoint.sh
 # Finally, copy everything else
 COPY . .
 
+# Set environment variables
+ENV NODE_ENV=production
+ENV RENDER=true
+ARG PORT=3000
+ENV PORT=${PORT}
+
 # Build Next.js
 RUN npm run build
 
 # Expose the port that will be used by the application
-# Note: The actual port used will be determined by the PORT env variable
-ARG PORT=3000
-ENV PORT=${PORT}
 EXPOSE ${PORT}
 
 # Set the entrypoint script to run before the Node.js server

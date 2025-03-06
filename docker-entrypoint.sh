@@ -14,9 +14,15 @@ chmod 777 /app/tmp
 # Allow execution of Python scripts
 chmod +x /app/*.py
 
-# Set default PORT if not provided
+# Set environment variables for proper operation
 export PORT=${PORT:-3000}
-echo "Starting server on PORT: $PORT"
+export NODE_ENV=${NODE_ENV:-production}
+export RENDER=true
+
+echo "Starting server with configuration:"
+echo "PORT: $PORT"
+echo "NODE_ENV: $NODE_ENV"
+echo "In Render: $RENDER"
 
 # Execute the command passed to this script (usually npm run start)
 exec "$@" 
