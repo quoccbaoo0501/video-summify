@@ -35,9 +35,12 @@ export async function POST(request: NextRequest) {
     try {
       // 2. Attempt to run the Python script
       //    Wrap all paths in quotes to avoid issues with spaces
-      const command = `${pythonCommand} "summarize_api.py" "${inputFile}" "${outputFile}"`;
+      const scriptPath = path.join(process.cwd(), 'summarize_api.py');
+      const command = `${pythonCommand} "${scriptPath}" "${inputFile}" "${outputFile}"`;
       console.log('Running command:', command);
       const { stdout, stderr } = await execPromise(command);
+      console.log('summarize_api.py STDOUT:', stdout);
+      console.error('summarize_api.py STDERR:', stderr);
       if (stderr && !stderr.includes('WARNING')) {
         console.error('Python script error:', stderr);
         return NextResponse.json(
