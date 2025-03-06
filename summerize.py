@@ -31,10 +31,10 @@ def setup_api_keys() -> None:
                         continue
     
     # Configure Gemini API
-    if os.environ.get("GOOGLE_API_KEY"):
-        genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+    if os.environ.get("GEMINI_API_KEY"):
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
     else:
-        print("Warning: GOOGLE_API_KEY not found in environment variables")
+        print("Warning: GEMINI_API_KEY not found in environment variables")
 
 def summarize_text(
     text: str, 
