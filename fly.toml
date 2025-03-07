@@ -1,0 +1,22 @@
+app = "video-summify"
+primary_region = "ord" # Chicago (you can change this to a region closer to you)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  RENDER = "true"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[mounts]
+  source = "video_summify_data"
+  destination = "/app/tmp" 
